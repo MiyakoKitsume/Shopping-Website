@@ -1,0 +1,6 @@
+{
+  "name": "Fullstack Starter",
+  "description": "Cấu trúc dự án Full-stack mẫu cho cửa hàng quần áo (Shop Quần Áo) gồm Frontend và Backend.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
