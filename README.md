@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Stride
 
 Cửa hàng giày thể thao full-stack: React, TypeScript, Vite ở frontend và Express ở backend. Giao diện tiếng Việt, font Arial.
