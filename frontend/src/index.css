@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 @import "tailwindcss";
 
 :root { font-family: Arial, sans-serif; color: #171717; background: #f4f3ef; font-synthesis: none; }
@@ -269,17 +268,6 @@ footer div { display: flex; gap: 22px; }
   .login-card { padding: 70px 0; }
   .login-card h2 { margin-bottom: 30px; }
 }
-=======
-@import "tailwindcss";
-
-:root { font-family: Arial, sans-serif; color: #171717; background: #f4f3ef; font-synthesis: none; }
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; background: #f4f3ef; }
-button, input { font: inherit; }
-button, a { -webkit-tap-highlight-color: transparent; }
-a { color: inherit; text-decoration: none; }
-.site-shell { max-width: 1600px; margin: auto; overflow: hidden; background: #f4f3ef; }
 .announcement { background: #1b1c1a; color: #f6f5ef; height: 34px; padding: 0 5.5%; display: flex; justify-content: space-between; align-items: center; font: 10px Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
 .announcement-detail { opacity: .6; }
 .header { height: 82px; padding: 0 5.5%; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dbdad5; position: relative; z-index: 5; }
@@ -493,4 +481,3 @@ footer div { display: flex; gap: 22px; }
   .login-card { padding: 70px 0; }
   .login-card h2 { margin-bottom: 30px; }
 }
->>>>>>> 779ba4057c6798835009ad0d8cf86c88c17f4c50
