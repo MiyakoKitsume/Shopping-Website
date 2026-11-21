@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-<<<<<<< HEAD
 import { createServer as createViteServer } from "vite";
 import { hashPassword } from "./backend/auth.ts";
 import { api } from "./backend/routes.ts";
@@ -29,23 +28,6 @@ async function startServer() {
   app.use(express.json({ limit: "32kb" }));
   await seedDemoAccount();
   app.use("/api", api);
-=======
-import { fileURLToPath } from "url";
-import { createServer as createViteServer } from "vite";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
-
-  app.use(express.json());
-
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", message: "Shop Quần Áo environment ready" });
-  });
->>>>>>> 779ba4057c6798835009ad0d8cf86c88c17f4c50
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -62,7 +44,6 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-<<<<<<< HEAD
     console.log(`Stride running at http://localhost:${PORT}`);
   });
 }
@@ -71,10 +52,3 @@ startServer().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-=======
-    console.log(`Server running at http://localhost:${PORT}`);
-  });
-}
-
-startServer();
->>>>>>> 779ba4057c6798835009ad0d8cf86c88c17f4c50
