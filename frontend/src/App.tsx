@@ -8,7 +8,7 @@ import {
   ShoppingBag,
   UserRound,
   Star,
-  X,
+  X
 } from "lucide-react";
 
 type Category = "All" | "Running" | "Training" | "Lifestyle";
@@ -23,10 +23,12 @@ interface Product {
   color: string;
   tag?: string;
   stock: number;
+  description: string;
 }
 
 interface CartItem extends Product {
   quantity: number;
+  size: number;
 }
 
 const products: Product[] = [
@@ -38,6 +40,7 @@ const products: Product[] = [
     reviews: "128",
     color: "Đen / Vàng neon",
     tag: "Mới",
+    description: "Một đôi giày chạy linh hoạt với đệm nhẹ, hỗ trợ chuyển động tự nhiên và thoáng khí cho những buổi chạy dài.",
     image:
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=85",
     stock: 24,
@@ -49,6 +52,7 @@ const products: Product[] = [
     rating: "4.8",
     reviews: "94",
     color: "Trắng / Bạc",
+    description: "Độ êm ái tăng cường cho từng bước chạy, kết hợp đế linh hoạt và thân giày mềm giúp giữ chân ổn định suốt ngày.",
     image:
       "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=900&q=85",
     stock: 18,
@@ -61,6 +65,7 @@ const products: Product[] = [
     reviews: "215",
     color: "Xanh sage / Kem",
     tag: "Bán chạy",
+    description: "Thiết kế lifestyle tối giản với phần upper knit co giãn và đệm êm, phù hợp cho đi làm, đi chơi và mặc hàng ngày.",
     image:
       "https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=900&q=85",
     stock: 32,
@@ -72,6 +77,7 @@ const products: Product[] = [
     rating: "4.8",
     reviews: "76",
     color: "Đất nung / Cao su",
+    description: "Đôi giày training cân bằng cho phòng tập, với đế chân phẳng, phần gót chắc chắn và độ bám tốt trong các bài tập đa hướng.",
     image:
       "https://images.unsplash.com/photo-1554135367-3ec7b2b7c1e4?auto=format&fit=crop&w=900&q=85",
     stock: 16,
@@ -83,6 +89,7 @@ const products: Product[] = [
     rating: "4.9",
     reviews: "51",
     color: "Đá / Cam",
+    description: "Mẫu trail bảo vệ với phần upper GTX chống nước, đế răng sâu và đệm phản hồi để tự tin trên địa hình gồ ghề.",
     image:
       "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=900&q=85",
     stock: 12,
@@ -94,6 +101,7 @@ const products: Product[] = [
     rating: "4.6",
     reviews: "68",
     color: "Đen / Trắng",
+    description: "Nền đế ổn định và phần đệm hỗ trợ tối ưu giúp tăng kiểm soát trong squat, deadlift và các bài tập sức mạnh.",
     image:
       "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=900&q=85",
     stock: 20,
@@ -105,6 +113,16 @@ type SortId = "featured" | "price-asc" | "price-desc" | "rating";
 const FREE_SHIPPING = 1000000;
 const CART_KEY = "stride.cart";
 const LIKES_KEY = "stride.likes";
+const isCardExpiryValid = (expiry: string, now = new Date()) => {
+  const match = expiry.match(/^(\d{2})\s*\/\s*(\d{2})$/);
+  if (!match) return false;
+  const month = Number(match[1]);
+  const year = 2000 + Number(match[2]);
+  if (month < 1 || month > 12) return false;
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  return year > currentYear || (year === currentYear && month >= currentMonth);
+};
 const categoryLabels: Record<Category, string> = {
   All: "Tất cả",
   Running: "Chạy bộ",
@@ -112,6 +130,7 @@ const categoryLabels: Record<Category, string> = {
   Lifestyle: "Phong cách",
 };
 const formatVnd = (amount: number) => `${amount.toLocaleString("vi-VN")} VNĐ`;
+const productSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 function readStored<T>(key: string, fallback: T): T {
   try {
@@ -128,7 +147,9 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<CartItem[]>(() => {
     const value = readStored<CartItem[]>(CART_KEY, []);
-    return Array.isArray(value) ? value : [];
+    return Array.isArray(value)
+      ? value.map((item) => ({ ...item, size: item.size ?? 39 }))
+      : [];
   });
   const [liked, setLiked] = useState<string[]>(() => {
     const value = readStored<string[]>(LIKES_KEY, []);
@@ -148,6 +169,12 @@ export default function App() {
   const [loginSubmitted, setLoginSubmitted] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [registerPasswordVisible, setRegisterPasswordVisible] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "cod">("card");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
+    const slug = window.location.hash.replace("#shoe/", "");
+    return products.find((product) => productSlug(product.name) === slug) ?? null;
+  });
+  const [selectedSize, setSelectedSize] = useState(39);
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -180,12 +207,31 @@ export default function App() {
   }, [liked]);
 
   useEffect(() => {
+    const syncProductFromHash = () => {
+      const slug = window.location.hash.replace("#shoe/", "");
+      setSelectedProduct(slug
+        ? products.find((product) => productSlug(product.name) === slug) ?? null
+        : null);
+    };
+    window.addEventListener("popstate", syncProductFromHash);
+    window.addEventListener("hashchange", syncProductFromHash);
+    return () => {
+      window.removeEventListener("popstate", syncProductFromHash);
+      window.removeEventListener("hashchange", syncProductFromHash);
+    };
+  }, []);
+
+  useEffect(() => {
     const closeTransientUi = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setShowBag(false);
       setShowLogin(false);
       setShowRegister(false);
       setShowCheckout(false);
+      setSelectedProduct(null);
+      if (window.location.hash.startsWith("#shoe/")) {
+        window.history.pushState({}, "", window.location.pathname + window.location.search);
+      }
       setSortOpen(false);
       setMenuOpen(false);
     };
@@ -193,31 +239,31 @@ export default function App() {
     return () => window.removeEventListener("keydown", closeTransientUi);
   }, []);
 
-  const addToCart = (name: string) => {
+  const addToCart = (name: string, size = 39) => {
     const product = products.find((item) => item.name === name);
     if (!product) return;
     setCart((items) => {
-      const existing = items.find((item) => item.name === name);
+      const existing = items.find((item) => item.name === name && item.size === size);
       if (existing && existing.quantity >= product.stock) {
         setNotice("Đã đạt số lượng tồn kho");
         return items;
       }
       return existing
         ? items.map((item) =>
-            item.name === name ? { ...item, quantity: item.quantity + 1 } : item,
+            item.name === name && item.size === size ? { ...item, quantity: item.quantity + 1 } : item,
           )
-        : [...items, { ...product, quantity: 1 }];
+        : [...items, { ...product, size, quantity: 1 }];
     });
     setShowBag(false);
     setNotice(`Đã thêm ${name} vào giỏ hàng`);
     window.setTimeout(() => setNotice(""), 2500);
   };
 
-  const updateQuantity = (name: string, change: number) => {
+  const updateQuantity = (name: string, size: number, change: number) => {
     setCart((items) =>
       items
         .map((item) =>
-          item.name === name
+          item.name === name && item.size === size
             ? {
                 ...item,
                 quantity: Math.min(
@@ -238,6 +284,10 @@ export default function App() {
       return;
     }
     setShowBag(false);
+    setSelectedProduct(null);
+    if (window.location.hash.startsWith("#shoe/")) {
+      window.history.pushState({}, "", window.location.pathname + window.location.search);
+    }
     if (!signedIn) {
       setCheckoutPendingLogin(true);
       setShowLogin(true);
@@ -251,6 +301,73 @@ export default function App() {
       items.includes(name) ? items.filter((item) => item !== name) : [...items, name],
     );
   };
+
+  const openProduct = (product: Product) => {
+    setSelectedSize(39);
+    setSelectedProduct(product);
+    window.history.pushState({}, "", `#shoe/${productSlug(product.name)}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const closeProduct = () => {
+    setSelectedProduct(null);
+    if (window.location.hash.startsWith("#shoe/")) {
+      window.history.pushState({}, "", window.location.pathname + window.location.search);
+    }
+  };
+
+  if (selectedProduct && !showCheckout && !showLogin && !showRegister) {
+    const product = selectedProduct;
+    return (
+      <div className="site-shell detail-shell">
+        <div className="announcement"><span>Miễn phí vận chuyển cho đơn từ {formatVnd(FREE_SHIPPING)}</span><span className="announcement-detail">Đổi trả dễ dàng trong 30 ngày</span></div>
+        <header className="header">
+          <button className="wordmark logo-button" onClick={closeProduct} aria-label="Quay lại cửa hàng">STRIDE<span>.</span></button>
+          <button className="return-link" onClick={closeProduct}>Quay lại cửa hàng <ArrowRight size={16} /></button>
+          <button className="bag-button" aria-label={`${cartCount} sản phẩm trong giỏ hàng`} onClick={() => setShowBag(true)}>
+            <ShoppingBag size={20} strokeWidth={1.8} /><span>Giỏ hàng</span><b>{cartCount}</b>
+          </button>
+        </header>
+        {showBag && <div className="bag-overlay" onClick={() => setShowBag(false)} />}
+        {showBag && <aside className="bag-drawer" aria-label="Giỏ hàng">
+          <div className="drawer-header"><div><p className="eyebrow">Giỏ hàng</p><h2>{cartCount} sản phẩm</h2></div><button className="icon-button" onClick={() => setShowBag(false)} aria-label="Đóng giỏ hàng"><X size={21} /></button></div>
+          {cart.length ? <div className="bag-items">{cart.map((item) => <div className="bag-item" key={`${item.name}-${item.size}`}><img src={item.image} alt="" /><div><strong>{item.name}</strong><span>{item.color} · Size {item.size}</span><div className="quantity-control"><button onClick={() => updateQuantity(item.name, item.size, -1)}>−</button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.name, item.size, 1)}>+</button></div></div><b>{formatVnd(item.price * item.quantity)}</b></div>)}</div> : <div className="empty-bag"><ShoppingBag size={30} /><p>Giỏ hàng đang chờ<br />món đồ phù hợp.</p></div>}
+          <div className="bag-footer"><div><span>Tạm tính</span><strong>{formatVnd(cartTotal)}</strong></div><button className="primary-button checkout-button" onClick={beginCheckout}>Thanh toán <ArrowRight size={17} /></button></div>
+        </aside>}
+        <main className="product-detail-page">
+          <section className="detail-gallery">
+            {product.tag && <span className="product-tag">{product.tag}</span>}
+            <button className={liked.includes(product.name) ? "heart-button liked" : "heart-button"} onClick={() => toggleLike(product.name)} aria-label={`Lưu ${product.name}`}>
+              <Heart size={20} fill={liked.includes(product.name) ? "currentColor" : "none"} />
+            </button>
+            <img src={product.image} alt={product.name} onError={(event) => { event.currentTarget.style.display = "none"; }} />
+          </section>
+          <section className="detail-copy">
+            <p className="eyebrow">{product.category} / Stride Athletics</p>
+            <h1>{product.name}</h1>
+            <div className="detail-meta"><div className="rating"><Star size={14} fill="currentColor" /> {product.rating} <span>({product.reviews} đánh giá)</span></div><strong>{formatVnd(product.price)}</strong></div>
+            <p className="product-desc">{product.description}</p>
+            <div className="detail-divider" />
+            <p className="detail-label">Màu sắc</p>
+            <div className="detail-color"><span /> {product.color}</div>
+            <p className="detail-label">Chọn size EU</p>
+            <div className="size-grid">
+              {[38, 39, 40, 41, 42, 43, 44].map((size) => (
+                <button key={size} type="button" className={selectedSize === size ? "active" : ""} onClick={() => setSelectedSize(size)}>{size}</button>
+              ))}
+            </div>
+            <p className="stock-note">{product.stock > 0 ? `Còn hàng · Size ${selectedSize}` : "Tạm hết hàng"}</p>
+            <button className="login-submit detail-add" type="button" onClick={() => addToCart(product.name, selectedSize)} disabled={product.stock < 1}>
+              {product.stock < 1 ? "Hết hàng" : "Thêm vào giỏ hàng"} <ArrowRight size={17} />
+            </button>
+            <div className="detail-benefits"><div><strong>Miễn phí vận chuyển</strong><span>Cho đơn từ {formatVnd(FREE_SHIPPING)}</span></div><div><strong>Đổi trả dễ dàng</strong><span>Trong vòng 30 ngày</span></div></div>
+          </section>
+        </main>
+        {notice && <div className="toast">{notice}<span>✓</span></div>}
+        <footer><button className="wordmark logo-button" onClick={closeProduct}>STRIDE<span>.</span></button><p>© 2026 Stride Athletics</p></footer>
+      </div>
+    );
+  }
 
   if (showRegister) {
     return (
@@ -365,8 +482,8 @@ export default function App() {
       <div className="site-shell checkout-shell">
         <div className="announcement"><span>Thanh toán an toàn</span><span className="announcement-detail">Miễn phí vận chuyển cho đơn từ {formatVnd(FREE_SHIPPING)}</span></div>
         <header className="header">
-          <button className="wordmark logo-button" onClick={() => setShowCheckout(false)} aria-label="Return to Stride home">STRIDE<span>.</span></button>
-          <button className="return-link" onClick={() => setShowCheckout(false)}>Quay lại cửa hàng <ArrowRight size={16} /></button>
+          <button className="wordmark logo-button" onClick={() => { setShowCheckout(false); closeProduct(); }} aria-label="Quay lại cửa hàng">STRIDE<span>.</span></button>
+          <button className="return-link" onClick={() => { setShowCheckout(false); closeProduct(); }}>Quay lại cửa hàng <ArrowRight size={16} /></button>
         </header>
         {checkoutComplete ? (
           <main className="checkout-success-page">
@@ -374,27 +491,50 @@ export default function App() {
             <p className="eyebrow">Đặt hàng thành công</p>
             <h1>Sẵn sàng<br /><em>bứt phá.</em></h1>
             <p>Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ sớm gửi hóa đơn và thông tin theo dõi qua email.</p>
-            <button className="primary-button" onClick={() => { setCart([]); setCheckoutComplete(false); setShowCheckout(false); }}>Tiếp tục mua sắm <ArrowRight size={17} /></button>
+            <button className="primary-button" onClick={() => { setCart([]); setCheckoutComplete(false); setShowCheckout(false); closeProduct(); }}>Tiếp tục mua sắm <ArrowRight size={17} /></button>
           </main>
         ) : (
           <main className="checkout-page">
             <section className="checkout-form-panel">
               <p className="eyebrow">Sắp hoàn tất</p>
               <h1>Hoàn tất<br /><em>đơn hàng.</em></h1>
-              <form className="checkout-form" onSubmit={(event) => { event.preventDefault(); if (!cart.length) { setShowCheckout(false); setNotice("Giỏ hàng đang trống"); return; } setCheckoutComplete(true); }}>
+              <form className="checkout-form" onSubmit={(event) => {
+                event.preventDefault();
+                const form = event.currentTarget;
+                if (paymentMethod === "card") {
+                  const expiry = form.elements.namedItem("expiry") as HTMLInputElement;
+                  if (!isCardExpiryValid(expiry.value)) {
+                    expiry.setCustomValidity("Ngày hết hạn không hợp lệ hoặc thẻ đã hết hạn");
+                    expiry.reportValidity();
+                    return;
+                  }
+                  expiry.setCustomValidity("");
+                }
+                if (!cart.length) { setShowCheckout(false); setNotice("Giỏ hàng đang trống"); return; }
+                setCheckoutComplete(true);
+              }}>
                 <h2>Thông tin liên hệ</h2>
-                <label>Địa chỉ email<input type="email" placeholder="you@example.com" required /></label>
+                <label>Địa chỉ email<input name="email" type="email" placeholder="you@example.com" required /></label>
                 <h2>Địa chỉ giao hàng</h2>
-                <div className="form-row"><label>Tên<input required /></label><label>Họ<input required /></label></div>
-                <label>Địa chỉ<input required /></label>
-                <div className="form-row"><label>Thành phố<input required /></label><label>Mã bưu chính<input required pattern="[0-9A-Za-z -]{3,10}" /></label></div>
+                <div className="form-row"><label>Tên<input name="firstName" required /></label><label>Họ<input name="lastName" required /></label></div>
+                <label>Địa chỉ<input name="address" required /></label>
+                <div className="form-row"><label>Thành phố<input name="city" required /></label><label>Mã bưu chính<input name="postalCode" required pattern="[0-9A-Za-z -]{3,10}" /></label></div>
                 <h2>Thanh toán</h2>
-                <label>Số thẻ<input inputMode="numeric" placeholder="4242 4242 4242 4242" required pattern="[0-9 ]{12,23}" /></label>
-                <div className="form-row"><label>Ngày hết hạn<input placeholder="MM / YY" required pattern="(0[1-9]|1[0-2]) / [0-9]{2}" /></label><label>Mã bảo mật<input inputMode="numeric" placeholder="CVC" required pattern="[0-9]{3,4}" /></label></div>
+                <div className="payment-options">
+                  <label className={paymentMethod === "card" ? "active" : ""}><input type="radio" name="payment" checked={paymentMethod === "card"} onChange={() => setPaymentMethod("card")} /> Thẻ thanh toán</label>
+                  <label className={paymentMethod === "cod" ? "active" : ""}><input type="radio" name="payment" checked={paymentMethod === "cod"} onChange={() => setPaymentMethod("cod")} /> Thanh toán khi nhận hàng</label>
+                </div>
+                {paymentMethod === "card" && <><label>Số thẻ<input name="cardNumber" inputMode="numeric" placeholder="4242 4242 4242 4242" required pattern="[0-9 ]{12,23}" /></label>
+                <div className="form-row"><label>Ngày hết hạn<input name="expiry" placeholder="MM / YY" required maxLength={7} pattern="(0[1-9]|1[0-2])\s*/\s*[0-9]{2}" onInput={(event) => {
+                  const input = event.currentTarget;
+                  input.setCustomValidity("");
+                  const digits = input.value.replace(/\D/g, "").slice(0, 4);
+                  input.value = digits.length > 2 ? `${digits.slice(0, 2)} / ${digits.slice(2)}` : digits;
+                }} /></label><label>Mã bảo mật<input name="cvc" inputMode="numeric" placeholder="CVC" required pattern="[0-9]{3,4}" /></label></div></>}
                 <button className="login-submit" type="submit">Đặt hàng <ArrowRight size={17} /></button>
               </form>
             </section>
-            <aside className="order-summary"><p className="eyebrow">Đơn hàng của bạn</p><h2>{cartCount} sản phẩm</h2>{cart.map((item) => <div className="summary-item" key={item.name}><img src={item.image} alt="" /><div><strong>{item.name}</strong><span>Số lượng {item.quantity}</span></div><b>{formatVnd(item.price * item.quantity)}</b></div>)}<div className="summary-total"><span>Tạm tính</span><strong>{formatVnd(subtotal)}</strong></div><div className="summary-total"><span>Vận chuyển</span><strong>{shipping ? formatVnd(shipping) : "Miễn phí"}</strong></div><div className="summary-total"><span>Tổng cộng</span><strong>{formatVnd(cartTotal)}</strong></div></aside>
+            <aside className="order-summary"><p className="eyebrow">Đơn hàng của bạn</p><h2>{cartCount} sản phẩm</h2>{cart.map((item) => <div className="summary-item" key={`${item.name}-${item.size}`}><img src={item.image} alt="" /><div><strong>{item.name}</strong><span>Size {item.size} · Số lượng {item.quantity}</span></div><b>{formatVnd(item.price * item.quantity)}</b></div>)}<div className="summary-total"><span>Tạm tính</span><strong>{formatVnd(subtotal)}</strong></div><div className="summary-total"><span>Vận chuyển</span><strong>{shipping ? formatVnd(shipping) : "Miễn phí"}</strong></div><div className="summary-total"><span>Tổng cộng</span><strong>{formatVnd(cartTotal)}</strong></div></aside>
           </main>
         )}
       </div>
@@ -435,7 +575,7 @@ export default function App() {
       {showBag && <div className="bag-overlay" onClick={() => setShowBag(false)} />}
       {showBag && <aside className="bag-drawer" aria-label="Giỏ hàng">
         <div className="drawer-header"><div><p className="eyebrow">Giỏ hàng</p><h2>{cartCount} sản phẩm</h2></div><button className="icon-button" onClick={() => setShowBag(false)} aria-label="Đóng giỏ hàng"><X size={21} /></button></div>
-        {cart.length ? <div className="bag-items">{cart.map((item) => <div className="bag-item" key={item.name}><img src={item.image} alt="" /><div><strong>{item.name}</strong><span>{item.color}</span><div className="quantity-control"><button onClick={() => updateQuantity(item.name, -1)} aria-label={`Xóa một ${item.name}`}>−</button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.name, 1)} aria-label={`Thêm một ${item.name}`}>+</button></div></div><b>{formatVnd(item.price * item.quantity)}</b></div>)}</div> : <div className="empty-bag"><ShoppingBag size={30} /><p>Giỏ hàng đang chờ<br />món đồ phù hợp.</p></div>}
+        {cart.length ? <div className="bag-items">{cart.map((item) => <div className="bag-item" key={`${item.name}-${item.size}`}><img src={item.image} alt="" /><div><strong>{item.name}</strong><span>{item.color} · Size {item.size}</span><div className="quantity-control"><button onClick={() => updateQuantity(item.name, item.size, -1)} aria-label={`Xóa một ${item.name}`}>−</button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.name, item.size, 1)} aria-label={`Thêm một ${item.name}`}>+</button></div></div><b>{formatVnd(item.price * item.quantity)}</b></div>)}</div> : <div className="empty-bag"><ShoppingBag size={30} /><p>Giỏ hàng đang chờ<br />món đồ phù hợp.</p></div>}
         <div className="bag-footer"><div><span>Tạm tính</span><strong>{formatVnd(cartTotal)}</strong></div><button className="primary-button checkout-button" onClick={beginCheckout}>Thanh toán <ArrowRight size={17} /></button><small>Thuế và phí vận chuyển được tính khi thanh toán.</small></div>
       </aside>}
 
@@ -502,10 +642,11 @@ export default function App() {
                     <Heart size={18} fill={liked.includes(product.name) ? "currentColor" : "none"} />
                   </button>
                   <img src={product.image} alt={product.name} loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                  <button className="product-open" type="button" onClick={() => openProduct(product)} aria-label={`Xem chi tiết ${product.name}`} />
                   <button className="quick-add" onClick={() => addToCart(product.name)} disabled={product.stock < 1}>{product.stock < 1 ? "Hết hàng" : "Thêm nhanh"} <span>+</span></button>
                 </div>
                 <div className="product-info">
-                  <div><h3>{product.name}</h3><p>{product.color}</p></div>
+                  <div><h3><button className="name-button" type="button" onClick={() => openProduct(product)}>{product.name}</button></h3><p>{product.color}</p></div>
                   <strong>{formatVnd(product.price)}</strong>
                 </div>
                 <div className="rating"><Star size={13} fill="currentColor" /> {product.rating} <span>({product.reviews})</span></div>

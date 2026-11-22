@@ -24,6 +24,19 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function isCardExpiryValid(expiry: string, now = new Date()) {
+  const match = expiry.match(/^(\d{2})\s*\/\s*(\d{2})$/);
+  if (!match) return false;
+
+  const month = Number(match[1]);
+  const year = 2000 + Number(match[2]);
+  if (month < 1 || month > 12) return false;
+
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  return year > currentYear || (year === currentYear && month >= currentMonth);
+}
+
 function cartKey(line: CartLine) {
   return `${line.productId}:${line.size}`;
 }
@@ -289,7 +302,7 @@ api.post("/orders", (req, res) => {
       const card = String(req.body?.cardNumber ?? "").replace(/\s+/g, "");
       const expiry = String(req.body?.expiry ?? "").trim();
       const cvc = String(req.body?.cvc ?? "").trim();
-      if (!/^\d{12,19}$/.test(card) || !/^(0[1-9]|1[0-2])\s*\/\s*\d{2}$/.test(expiry) || !/^\d{3,4}$/.test(cvc)) {
+      if (!/^\d{12,19}$/.test(card) || !isCardExpiryValid(expiry) || !/^\d{3,4}$/.test(cvc)) {
         res.status(400).json({ error: "Thông tin thẻ chưa hợp lệ. Dùng thẻ demo 4242 4242 4242 4242." });
         return;
       }
