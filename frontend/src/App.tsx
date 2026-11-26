@@ -79,7 +79,7 @@ const products: Product[] = [
     color: "Đất nung / Cao su",
     description: "Đôi giày training cân bằng cho phòng tập, với đế chân phẳng, phần gót chắc chắn và độ bám tốt trong các bài tập đa hướng.",
     image:
-      "https://images.unsplash.com/photo-1554135367-3ec7b2b7c1e4?auto=format&fit=crop&w=900&q=85",
+      "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?auto=format&fit=crop&w=900&q=85",
     stock: 16,
   },
   {
